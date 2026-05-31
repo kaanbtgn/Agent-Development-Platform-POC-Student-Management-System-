@@ -20,7 +20,7 @@ type FormData = z.infer<typeof schema>;
 
 export function ExamsPage() {
   const { studentId } = useParams<{ studentId: string }>();
-  const { grades, loading, upsertResult, fetchGrades, upsert, clearResult } = useExamGrades(studentId ?? '');
+  const { grades, loading, upsertResult, fetchGrades, upsert, remove, clearResult } = useExamGrades(studentId ?? '');
   const [editing, setEditing] = useState<ExamGradeDto | null>(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -46,18 +46,18 @@ export function ExamsPage() {
     setShowForm(true);
   };
 
-  if (!studentId) return <p className="p-8 text-gray-500">Öğrenci seçilmedi.</p>;
+  if (!studentId) return <p className="p-8 text-white/50">Öğrenci seçilmedi.</p>;
 
   return (
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-base font-semibold text-gray-900">Sınav Notları</h1>
+        <h1 className="text-base font-semibold text-white">Sınav Notları</h1>
         <Button size="sm" onClick={() => { setEditing(null); form.reset(); setShowForm(true); }}>
           + Not Ekle
         </Button>
       </div>
 
-      {loading ? <Spinner /> : <ExamGradeTable grades={grades} onEdit={handleEdit} />}
+      {loading ? <Spinner /> : <ExamGradeTable grades={grades} onEdit={handleEdit} onDelete={remove} />}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

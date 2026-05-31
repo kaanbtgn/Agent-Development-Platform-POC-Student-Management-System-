@@ -83,26 +83,41 @@ export function StudentsPage() {
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      {/* Left: student list */}
-      <div className="flex flex-1 flex-col overflow-hidden border-r border-gray-200 bg-gray-50">
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
-          <h1 className="text-base font-semibold text-gray-900">Öğrenciler</h1>
+    <div className="flex flex-1 overflow-hidden relative">
+      {/* Main: student list */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex items-center justify-between px-6 py-4"
+          style={{ background: 'rgba(255,255,255,0.07)', borderBottom: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl text-base"
+              style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(139,92,246,0.2))', border: '1px solid rgba(99,102,241,0.3)' }}>
+              🎓
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-white">Öğrenciler</h1>
+              <p className="text-[10px] text-indigo-300/50">Kayıtlı öğrenci listesi</p>
+            </div>
+          </div>
           <Button size="sm" onClick={() => setShowCreateForm(true)}>+ Yeni Öğrenci</Button>
         </header>
 
         <div className="px-6 py-3">
-          <Input
-            placeholder="Öğrenci ara..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-white/30">🔍</span>
+            <input
+              className="h-10 w-full rounded-xl pl-9 pr-4 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+              placeholder="Öğrenci ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
         {loading && (
           <div className="flex justify-center py-8"><Spinner /></div>
         )}
-        {error && <p className="px-6 text-sm text-red-600">{error}</p>}
+        {error && <p className="px-6 text-sm text-red-400">{error}</p>}
 
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           <StudentTable
@@ -113,13 +128,26 @@ export function StudentsPage() {
         </div>
       </div>
 
-      {/* Right: detail panel */}
+      {/* Detail panel as slide-in modal overlay */}
       {selectedStudent && (
-        <DetailPanel
-          student={selectedStudent}
-          tab={detailTab}
-          onTabChange={setDetailTab}
-        />
+        <>
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 z-20 animate-fade-in"
+            style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }}
+            onClick={() => setSelectedStudent(null)}
+          />
+          {/* Slide-in panel */}
+          <div className="absolute right-0 top-0 bottom-0 z-30 w-[480px] flex flex-col animate-slide-in-right shadow-2xl"
+            style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)' }}>
+            <DetailPanel
+              student={selectedStudent}
+              tab={detailTab}
+              onTabChange={setDetailTab}
+              onClose={() => setSelectedStudent(null)}
+            />
+          </div>
+        </>
       )}
 
       {/* Create form modal */}
@@ -180,13 +208,15 @@ function DetailPanel({
   student,
   tab,
   onTabChange,
+  onClose,
 }: {
   student: StudentDto;
   tab: DetailTab;
   onTabChange: (t: DetailTab) => void;
+  onClose: () => void;
 }) {
-  const { payments, loading: pLoading, fetchPayments, upsert: upsertPayment, upsertResult: paymentUpsertResult, clearResult: clearPaymentResult } = usePayments(student.id);
-  const { grades, loading: gLoading, fetchGrades, upsert: upsertGrade, upsertResult: gradeUpsertResult, clearResult: clearGradeResult } = useExamGrades(student.id);
+  const { payments, loading: pLoading, fetchPayments, upsert: upsertPayment, remove: removePayment, upsertResult: paymentUpsertResult, clearResult: clearPaymentResult } = usePayments(student.id);
+  const { grades, loading: gLoading, fetchGrades, upsert: upsertGrade, remove: removeGrade, upsertResult: gradeUpsertResult, clearResult: clearGradeResult } = useExamGrades(student.id);
 
   const [editingPayment, setEditingPayment] = useState<InternshipPaymentDto | null>(null);
   const [showAddPayment, setShowAddPayment] = useState(false);
@@ -267,21 +297,36 @@ function DetailPanel({
 
   return (
     <>
-      <div className="flex w-[420px] flex-col overflow-hidden bg-white">
-        <div className="border-b border-gray-200 px-4 py-4">
-          <p className="text-base font-semibold text-gray-900">
-            {student.firstName} {student.lastName}
-          </p>
-          <p className="text-xs text-gray-500">{student.studentNumber} · {student.department}</p>
+      <div className="flex h-full flex-col overflow-hidden">
+        {/* Panel header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-base font-bold text-white">
+              {student.firstName[0]}{student.lastName[0]}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">
+                {student.firstName} {student.lastName}
+              </p>
+              <p className="text-xs text-indigo-200">{student.studentNumber} · {student.department}</p>
+            </div>
+          </div>
+          <button
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-sm text-white transition-colors hover:bg-white/30"
+            onClick={onClose}
+          >
+            ✕
+          </button>
         </div>
-        <div className="flex border-b border-gray-200">
+        {/* Tabs */}
+        <div className="flex gap-0" style={{ background: 'rgba(248,248,252,1)', borderBottom: '1px solid #e5e7eb' }}>
           {TABS.map(({ key, label }) => (
             <button
               key={key}
-              className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+              className={`flex-1 py-2.5 text-xs font-semibold transition-all duration-150 ${
                 tab === key
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'border-b-2 border-indigo-600 text-indigo-700 bg-white'
+                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50/50'
               }`}
               onClick={() => onTabChange(key)}
             >
@@ -295,7 +340,7 @@ function DetailPanel({
               <div className="mb-3 flex justify-end">
                 <Button size="sm" onClick={openAddPayment}>+ Yeni Ödeme</Button>
               </div>
-              {pLoading ? <Spinner /> : <PaymentTable payments={payments} onEdit={openEditPayment} />}
+              {pLoading ? <Spinner /> : <PaymentTable payments={payments} onEdit={openEditPayment} onDelete={removePayment} />}
             </>
           )}
           {tab === 'exams' && (
@@ -303,7 +348,7 @@ function DetailPanel({
               <div className="mb-3 flex justify-end">
                 <Button size="sm" onClick={openAdd}>+ Yeni Not</Button>
               </div>
-              {gLoading ? <Spinner /> : <ExamGradeTable grades={grades} onEdit={openEdit} />}
+              {gLoading ? <Spinner /> : <ExamGradeTable grades={grades} onEdit={openEdit} onDelete={removeGrade} />}
             </>
           )}
           {tab === 'audit' && <AuditLogPanel studentId={student.id} />}
@@ -416,13 +461,16 @@ function DetailPanel({
 
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-          <button className="text-gray-400 hover:text-gray-600" onClick={onClose}>✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' }}>
+      <div className="w-full max-w-md overflow-hidden rounded-2xl shadow-2xl animate-slide-in-up" style={{ background: 'rgba(255,255,255,0.97)' }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+          <h2 className="text-sm font-bold text-white">{title}</h2>
+          <button
+            className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/20 text-xs text-white hover:bg-white/30 transition-colors"
+            onClick={onClose}
+          >✕</button>
         </div>
-        {children}
+        <div className="p-5">{children}</div>
       </div>
     </div>
   );

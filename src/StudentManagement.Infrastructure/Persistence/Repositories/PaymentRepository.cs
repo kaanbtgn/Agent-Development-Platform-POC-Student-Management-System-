@@ -52,4 +52,8 @@ internal sealed class PaymentRepository : IPaymentRepository
                 "UpdatedAt"   = EXCLUDED."UpdatedAt"
             """, ct);
     }
+
+    public async Task DeleteByStudentAndPeriodAsync(Guid studentId, int year, int month, CancellationToken ct = default)
+        => await _context.Database.ExecuteSqlAsync(
+            $"""DELETE FROM internship_payments WHERE "StudentId" = {studentId} AND "PeriodYear" = {year} AND "PeriodMonth" = {month}""", ct);
 }

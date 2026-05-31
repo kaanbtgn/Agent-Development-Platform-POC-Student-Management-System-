@@ -21,4 +21,7 @@ public interface IPaymentRepository
 
     /// <summary>Kayıt mevcutsa günceller, yoksa ekler (Upsert).</summary>
     Task UpsertAsync(InternshipPayment payment, CancellationToken ct = default);
+
+    /// <summary>Belirtilen öğrencinin belirtilen döneme ait ödeme kaydını siler.</summary>
+    Task DeleteByStudentAndPeriodAsync(Guid studentId, int year, int month, CancellationToken ct = default);
 }

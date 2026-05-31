@@ -33,5 +33,13 @@ export function useExamGrades(studentId: string) {
     [studentId, fetchGrades]
   );
 
-  return { grades, loading, error, upsertResult, fetchGrades, upsert, clearResult: () => setUpsertResult(null) };
+  const remove = useCallback(
+    async (courseName: string) => {
+      await examApi.remove(studentId, courseName);
+      await fetchGrades();
+    },
+    [studentId, fetchGrades]
+  );
+
+  return { grades, loading, error, upsertResult, fetchGrades, upsert, remove, clearResult: () => setUpsertResult(null) };
 }

@@ -17,9 +17,10 @@ export function DocumentsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-6 text-xl font-semibold text-gray-900">Belge Yükle ve OCR</h1>
+      <h1 className="mb-6 text-xl font-semibold text-white">Belge Yükle ve OCR</h1>
 
-      <div className="mb-6 rounded-xl border-2 border-dashed border-gray-300 p-6">
+      <div className="mb-6 rounded-xl border-2 border-dashed border-white/20 p-6"
+        style={{ background: 'rgba(255,255,255,0.04)' }}>
         <FileUploadDropzone onFileSelected={handleFileSelected} />
       </div>
 
@@ -30,15 +31,16 @@ export function DocumentsPage() {
       )}
 
       {error && (
-        <p className="mb-4 text-sm text-red-600">{error}</p>
+        <p className="mb-4 text-sm text-red-400">{error}</p>
       )}
 
       {resultJson && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="rounded-xl border border-white/10 p-4"
+          style={{ background: 'rgba(255,255,255,0.06)' }}>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">OCR Sonucu</h2>
+            <h2 className="text-sm font-semibold text-indigo-200">OCR Sonucu</h2>
           </div>
-          <pre className="overflow-x-auto text-xs text-gray-600 whitespace-pre-wrap">
+          <pre className="overflow-x-auto text-xs text-white/60 whitespace-pre-wrap">
             {typeof resultJson === 'string' ? resultJson : JSON.stringify(resultJson, null, 2)}
           </pre>
         </div>

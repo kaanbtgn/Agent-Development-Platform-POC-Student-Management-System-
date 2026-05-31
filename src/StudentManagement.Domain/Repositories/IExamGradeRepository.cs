@@ -15,4 +15,7 @@ public interface IExamGradeRepository
 
     /// <summary>Birden fazla not kaydını tek seferde upsert eder.</summary>
     Task UpsertBatchAsync(IReadOnlyList<ExamGrade> grades, CancellationToken ct = default);
+
+    /// <summary>Belirtilen öğrencinin belirtilen derse ait not kaydını siler.</summary>
+    Task DeleteAsync(Guid studentId, string courseName, CancellationToken ct = default);
 }

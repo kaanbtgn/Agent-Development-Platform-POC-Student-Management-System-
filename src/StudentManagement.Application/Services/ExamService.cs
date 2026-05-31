@@ -114,6 +114,14 @@ internal sealed class ExamService : IExamService
             studentId, courseName);
     }
 
+    public async Task DeleteAsync(Guid studentId, string courseName, CancellationToken ct = default)
+    {
+        await _examGradeRepository.DeleteAsync(studentId, courseName, ct);
+        _logger.LogInformation(
+            "Delete grade: StudentId={StudentId} Course={CourseName}.",
+            studentId, courseName);
+    }
+
     private static void ValidateGrades(IReadOnlyList<UpsertGradeRequest> requests)
     {
         foreach (var r in requests)

@@ -1,83 +1,69 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import { useOcrStore } from '@/store/ocrStore';
-import { cn } from '@/lib/utils';
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+const ALLOWED_TYPES = [
+  // Görseller
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  // PDF
+  'application/pdf',
+  // Düz metin
+  'text/plain',
+  // Microsoft Office
+  'application/msword',                                                          // .doc
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',    // .docx
+  'application/vnd.ms-excel',                                                   // .xls
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',          // .xlsx
+  'application/vnd.ms-powerpoint',                                              // .ppt
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',  // .pptx
+];
 
 interface FileUploadDropzoneProps {
   onFileSelected?: (file: File) => void;
+  onError?: (msg: string) => void;
 }
 
-export function FileUploadDropzone({ onFileSelected }: FileUploadDropzoneProps) {
+export function FileUploadDropzone({ onFileSelected, onError }: FileUploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
   const { reset: resetOcr } = useOcrStore();
 
   const handleFile = useCallback(
     (file: File) => {
-      setValidationError(null);
       if (!ALLOWED_TYPES.includes(file.type)) {
-        setValidationError('Desteklenmeyen dosya türü. Lütfen resim veya PDF yükleyin.');
+        onError?.('Desteklenmeyen dosya türü. Lütfen resim veya PDF yükleyin.');
         return;
       }
       if (file.size > MAX_SIZE_BYTES) {
-        setValidationError('Dosya boyutu 10 MB sınırını aşıyor.');
+        onError?.('Dosya boyutu 10 MB sınırını aşıyor.');
         return;
       }
       resetOcr();
-      // Dosya state'e alınır; gönderim mesaj ile birlikte handleSend içinde yapılır
       onFileSelected?.(file);
     },
-    [resetOcr, onFileSelected]
-  );
-
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
-    },
-    [handleFile]
+    [resetOcr, onFileSelected, onError]
   );
 
   return (
-    <div>
-      <div
-        className={cn(
-          'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors',
-          isDragging
-            ? 'border-indigo-400 bg-indigo-50'
-            : 'border-gray-300 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50'
-        )}
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={onDrop}
+    <>
+      <button
+        type="button"
+        title="Dosya ekle"
+        className="flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:scale-105 active:scale-95"
+        style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)' }}
         onClick={() => inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
       >
-        <svg className="mb-2 h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        <svg className="h-5 w-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
         </svg>
-        <p className="text-sm text-gray-600">
-          Dosyayı sürükleyip bırakın veya <span className="font-medium text-indigo-600">seçin</span>
-        </p>
-        <p className="mt-1 text-xs text-gray-400">PNG, JPG, WebP, PDF — maks. 10 MB</p>
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept="image/*,application/pdf"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-        />
-      </div>
-      {validationError && (
-        <p className="mt-1 text-xs text-red-600">{validationError}</p>
-      )}
-    </div>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,application/pdf,text/plain,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+      />
+    </>
   );
 }

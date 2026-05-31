@@ -19,4 +19,7 @@ public interface IExamService
     Task UpsertDirectAsync(
         Guid studentId, string courseName, decimal? exam1Grade, decimal? exam2Grade,
         CancellationToken ct = default);
+
+    /// <summary>Belirtilen öğrencinin belirtilen derse ait not kaydını siler.</summary>
+    Task DeleteAsync(Guid studentId, string courseName, CancellationToken ct = default);
 }

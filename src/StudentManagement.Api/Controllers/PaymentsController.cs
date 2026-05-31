@@ -35,9 +35,17 @@ public sealed class PaymentsController : ControllerBase
         CancellationToken ct)
     {
         await _students.GetByIdAsync(studentId, ct);
-        await _payments.UpsertDirectAsync(studentId, year, month, req.Amount, req.PaymentDate, ct);
+        await _payments.UpsertDirectAsync(studentId, year, month, req.Amount, req.PaymentDate, req.Status, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{year:int}/{month:int}")]
+    public async Task<IActionResult> DeleteAsync(
+        Guid studentId, int year, int month, CancellationToken ct)
+    {
+        await _payments.DeleteAsync(studentId, year, month, ct);
         return NoContent();
     }
 }
 
-public sealed record ApiUpsertPaymentRequest(decimal Amount, DateOnly? PaymentDate);
+public sealed record ApiUpsertPaymentRequest(decimal Amount, DateOnly? PaymentDate, int? Status = null);

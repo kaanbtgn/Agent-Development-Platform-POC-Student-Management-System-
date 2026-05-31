@@ -55,4 +55,8 @@ internal sealed class ExamGradeRepository : IExamGradeRepository
                 "UpdatedAt"  = EXCLUDED."UpdatedAt"
             """, ct);
     }
+
+    public async Task DeleteAsync(Guid studentId, string courseName, CancellationToken ct = default)
+        => await _context.Database.ExecuteSqlAsync(
+            $"""DELETE FROM exam_grades WHERE "StudentId" = {studentId} AND "CourseName" = {courseName}""", ct);
 }

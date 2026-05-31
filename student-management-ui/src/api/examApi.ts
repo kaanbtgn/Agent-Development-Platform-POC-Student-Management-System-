@@ -14,4 +14,8 @@ export const examApi = {
         payload
       )
       .then((r) => r.data),
+
+  remove: (studentId: string, courseName: string) =>
+    axiosInstance
+      .delete(`/api/students/${studentId}/exam-grades/${encodeURIComponent(courseName)}`),
 };

@@ -14,4 +14,8 @@ export const paymentApi = {
         payload
       )
       .then((r) => r.data),
+
+  remove: (studentId: string, year: number, month: number) =>
+    axiosInstance
+      .delete(`/api/students/${studentId}/payments/${year}/${month}`),
 };

@@ -21,7 +21,7 @@ type FormData = z.infer<typeof schema>;
 
 export function PaymentsPage() {
   const { studentId } = useParams<{ studentId: string }>();
-  const { payments, loading, upsertResult, fetchPayments, upsert, clearResult } = usePayments(studentId ?? '');
+  const { payments, loading, upsertResult, fetchPayments, upsert, remove, clearResult } = usePayments(studentId ?? '');
   const [editing, setEditing] = useState<InternshipPaymentDto | null>(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -47,18 +47,18 @@ export function PaymentsPage() {
     setShowForm(true);
   };
 
-  if (!studentId) return <p className="p-8 text-gray-500">Öğrenci seçilmedi.</p>;
+  if (!studentId) return <p className="p-8 text-white/50">Öğrenci seçilmedi.</p>;
 
   return (
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-base font-semibold text-gray-900">Ödemeler</h1>
+        <h1 className="text-base font-semibold text-white">Ödemeler</h1>
         <Button size="sm" onClick={() => { setEditing(null); form.reset(); setShowForm(true); }}>
           + Ödeme Ekle
         </Button>
       </div>
 
-      {loading ? <Spinner /> : <PaymentTable payments={payments} onEdit={handleEdit} />}
+      {loading ? <Spinner /> : <PaymentTable payments={payments} onEdit={handleEdit} onDelete={remove} />}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

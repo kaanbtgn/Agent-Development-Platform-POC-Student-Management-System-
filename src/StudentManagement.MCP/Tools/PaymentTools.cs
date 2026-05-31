@@ -51,4 +51,22 @@ public sealed class PaymentTools
             $"api/students/{studentId}/payments/{year}/{month}", body, ct);
         return response.IsSuccessStatusCode ? "Ödeme güncellendi." : $"Hata: {response.StatusCode}";
     }
+
+    [McpServerTool]
+    [Description(
+        "Belirtilen dönem (yıl/ay) için staj burs ödeme kaydını kalıcı olarak siler. " +
+        "Bu işlem geri alınamaz; kullanıcıdan açık onay aldıktan sonra çağır.")]
+    public async Task<string> DeletePayment(
+        [Description("Öğrencinin benzersiz kimliği (UUID)")]
+        Guid studentId,
+        [Description("Ödeme döneminin yılı (örn. 2025)")]
+        int year,
+        [Description("Ödeme döneminin ayı (1-12)")]
+        int month,
+        CancellationToken ct)
+    {
+        var response = await _http.DeleteAsync(
+            $"api/students/{studentId}/payments/{year}/{month}", ct);
+        return response.IsSuccessStatusCode ? "Ödeme silindi." : $"Hata: {response.StatusCode}";
+    }
 }

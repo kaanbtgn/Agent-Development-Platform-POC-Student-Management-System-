@@ -43,4 +43,20 @@ public sealed class ExamGradeTools
             $"api/students/{studentId}/exam-grades/{Uri.EscapeDataString(courseName)}", body, ct);
         return response.IsSuccessStatusCode ? "Not güncellendi." : $"Hata: {response.StatusCode}";
     }
+
+    [McpServerTool]
+    [Description(
+        "Öğrencinin belirtilen dersine ait sınav not kaydını kalıcı olarak siler. " +
+        "Bu işlem geri alınamaz; kullanıcıdan açık onay aldıktan sonra çağır.")]
+    public async Task<string> DeleteExamGrade(
+        [Description("Öğrencinin benzersiz kimliği (UUID)")]
+        Guid studentId,
+        [Description("Silinecek dersin adı (örn. 'Matematik')")]
+        string courseName,
+        CancellationToken ct)
+    {
+        var response = await _http.DeleteAsync(
+            $"api/students/{studentId}/exam-grades/{Uri.EscapeDataString(courseName)}", ct);
+        return response.IsSuccessStatusCode ? "Not silindi." : $"Hata: {response.StatusCode}";
+    }
 }

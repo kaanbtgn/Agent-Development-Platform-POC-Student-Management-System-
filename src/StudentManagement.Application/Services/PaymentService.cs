@@ -96,22 +96,32 @@ internal sealed class PaymentService : IPaymentService
 
     public async Task UpsertDirectAsync(
         Guid studentId, int year, int month, decimal amount, DateOnly? paymentDate,
-        CancellationToken ct = default)
+        int? status = null, CancellationToken ct = default)
     {
-        var status = paymentDate.HasValue ? PaymentStatus.Paid : PaymentStatus.Pending;
+        var resolvedStatus = status.HasValue
+            ? (PaymentStatus)status.Value
+            : (paymentDate.HasValue ? PaymentStatus.Paid : PaymentStatus.Pending);
         var payment = new InternshipPayment(
             id: Guid.NewGuid(),
             studentId: studentId,
             periodYear: year,
             periodMonth: month,
             amount: amount,
-            status: status,
+            status: resolvedStatus,
             paymentDate: paymentDate);
 
         await _paymentRepository.UpsertAsync(payment, ct);
         _logger.LogInformation(
-            "UpsertDirect payment: StudentId={StudentId} {Year}/{Month} Amount={Amount}.",
-            studentId, year, month, amount);
+            "UpsertDirect payment: StudentId={StudentId} {Year}/{Month} Amount={Amount} Status={Status}.",
+            studentId, year, month, amount, resolvedStatus);
+    }
+
+    public async Task DeleteAsync(Guid studentId, int year, int month, CancellationToken ct = default)
+    {
+        await _paymentRepository.DeleteByStudentAndPeriodAsync(studentId, year, month, ct);
+        _logger.LogInformation(
+            "Delete payment: StudentId={StudentId} {Year}/{Month}.",
+            studentId, year, month);
     }
 
     private async Task<IReadOnlyList<InternshipPaymentDto>> EnrichWithStudentNamesAsync(

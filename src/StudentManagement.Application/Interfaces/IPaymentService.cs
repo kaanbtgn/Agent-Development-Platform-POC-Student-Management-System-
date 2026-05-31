@@ -19,5 +19,8 @@ public interface IPaymentService
     /// </summary>
     Task UpsertDirectAsync(
         Guid studentId, int year, int month, decimal amount, DateOnly? paymentDate,
-        CancellationToken ct = default);
+        int? status = null, CancellationToken ct = default);
+
+    /// <summary>Belirtilen öğrencinin belirtilen döneme ait ödeme kaydını siler.</summary>
+    Task DeleteAsync(Guid studentId, int year, int month, CancellationToken ct = default);
 }

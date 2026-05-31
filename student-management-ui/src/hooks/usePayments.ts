@@ -33,5 +33,13 @@ export function usePayments(studentId: string) {
     [studentId, fetchPayments]
   );
 
-  return { payments, loading, error, upsertResult, fetchPayments, upsert, clearResult: () => setUpsertResult(null) };
+  const remove = useCallback(
+    async (year: number, month: number) => {
+      await paymentApi.remove(studentId, year, month);
+      await fetchPayments();
+    },
+    [studentId, fetchPayments]
+  );
+
+  return { payments, loading, error, upsertResult, fetchPayments, upsert, remove, clearResult: () => setUpsertResult(null) };
 }

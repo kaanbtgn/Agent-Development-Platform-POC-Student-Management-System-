@@ -82,11 +82,12 @@ export function SessionSidebar({ onSessionChange }: SessionSidebarProps) {
   };
 
   return (
-    <div className="flex w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50">
-      <div className="border-b border-gray-200 p-3">
+    <div className="flex w-56 shrink-0 flex-col" style={{ background: 'rgba(20,16,50,0.6)', borderRight: '1px solid rgba(99,102,241,0.15)', backdropFilter: 'blur(12px)' }}>
+      <div className="p-3" style={{ borderBottom: '1px solid rgba(99,102,241,0.12)' }}>
         <button
           onClick={handleNew}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+          className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-indigo-500/20"
+          style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
         >
           <span className="text-base leading-none">+</span>
           Yeni Sohbet
@@ -99,7 +100,7 @@ export function SessionSidebar({ onSessionChange }: SessionSidebarProps) {
             <Spinner size="sm" />
           </div>
         ) : sessions.length === 0 ? (
-          <p className="px-3 pt-4 text-center text-xs text-gray-400">
+          <p className="px-3 pt-4 text-center text-xs text-indigo-300/40">
             Henüz sohbet yok.
           </p>
         ) : (
@@ -108,11 +109,15 @@ export function SessionSidebar({ onSessionChange }: SessionSidebarProps) {
             return (
               <div
                 key={session.sessionId}
-                className={`group relative flex cursor-pointer items-center gap-1 px-3 py-2 transition-colors ${
+                className={`group relative flex cursor-pointer items-center gap-1 rounded-xl mx-2 px-3 py-2.5 my-0.5 transition-all duration-150 ${
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'text-white'
+                    : 'text-indigo-200/50 hover:text-indigo-100/80'
                 }`}
+                style={isActive ? {
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.15))',
+                  borderLeft: '2px solid #818cf8',
+                } : { borderLeft: '2px solid transparent' }}
                 onClick={() => handleSwitch(session.sessionId)}
                 role="button"
                 tabIndex={0}
@@ -122,13 +127,13 @@ export function SessionSidebar({ onSessionChange }: SessionSidebarProps) {
                   <p className="truncate text-xs font-medium leading-snug">
                     {session.title}
                   </p>
-                  <p className="text-[10px] text-gray-400">
+                  <p className="text-[10px] text-indigo-300/40">
                     {session.messageCount} mesaj
                   </p>
                 </div>
 
                 <button
-                  className="ml-1 shrink-0 rounded p-0.5 text-gray-300 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+                  className="ml-1 shrink-0 rounded p-0.5 text-indigo-300/20 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDeletingId(session.sessionId);

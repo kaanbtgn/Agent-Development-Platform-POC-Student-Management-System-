@@ -38,6 +38,14 @@ public sealed class ExamGradesController : ControllerBase
         await _exams.UpsertDirectAsync(studentId, courseName, req.Exam1Grade, req.Exam2Grade, ct);
         return NoContent();
     }
+
+    [HttpDelete("{courseName}")]
+    public async Task<IActionResult> DeleteAsync(
+        Guid studentId, string courseName, CancellationToken ct)
+    {
+        await _exams.DeleteAsync(studentId, courseName, ct);
+        return NoContent();
+    }
 }
 
 public sealed record ApiUpsertExamGradeRequest(decimal? Exam1Grade, decimal? Exam2Grade);
