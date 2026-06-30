@@ -42,7 +42,6 @@ artifacts/
 # ASP.NET / Secrets
 # ──────────────────────────────────────────────
 appsettings.*.json
-!appsettings.json
 !appsettings.Development.json
 
 secrets.json

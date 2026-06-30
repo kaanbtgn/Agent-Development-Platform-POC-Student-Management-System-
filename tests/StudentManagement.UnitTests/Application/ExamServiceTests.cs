@@ -23,7 +23,6 @@ public sealed class ExamServiceTests
 
     private ExamService BuildSut() =>
         new(_gradeRepo.Object,
-            _studentRepo.Object,
             BuildEngine(),
             NullLogger<ExamService>.Instance);
 

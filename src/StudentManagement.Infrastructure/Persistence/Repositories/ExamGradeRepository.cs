@@ -18,6 +18,14 @@ internal sealed class ExamGradeRepository : IExamGradeRepository
             .Where(g => g.StudentId == studentId)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<ExamGrade>> GetFailingAsync(decimal threshold, CancellationToken ct = default)
+        => await _context.ExamGrades
+            .AsNoTracking()
+            .Include(g => g.Student)
+            .Where(g => (g.Exam1Grade.HasValue && g.Exam1Grade < threshold)
+                     || (g.Exam2Grade.HasValue && g.Exam2Grade < threshold))
+            .ToListAsync(ct);
+
     public async Task UpsertAsync(ExamGrade grade, CancellationToken ct = default)
         => await UpsertCoreAsync(grade, ct);
 

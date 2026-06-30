@@ -48,14 +48,14 @@ internal sealed class PdfGenerator : IPdfGenerator
                                             def.RelativeColumn();
                                     });
 
-                                    // Başlık satırı
-                                    foreach (var header in tableData.Headers)
+                                    // Başlık satırı — tüm hücreler tek bir Header() callback içinde tanımlanmalı
+                                    table.Header(h =>
                                     {
-                                        table.Header(h =>
+                                        foreach (var header in tableData.Headers)
                                             h.Cell().Background(Colors.Blue.Lighten4)
                                                 .Padding(4)
-                                                .Text(header).Bold());
-                                    }
+                                                .Text(header).Bold();
+                                    });
 
                                     // Veri satırları
                                     bool alternate = false;

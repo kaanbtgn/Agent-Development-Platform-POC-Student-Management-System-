@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
 using StudentManagement.Agent.Services.Models;
@@ -100,6 +101,54 @@ public sealed class StudentManagementAgent
         return new AgentResponse(
             Reply: reply,
             OcrMetadata: ocrMetadata);
+    }
+
+    /// <summary>
+    /// Metin tabanlı sohbeti LLM'den token-by-token akışı olarak döndürür.
+    /// Dosyalı istekler desteklenmez; bu durumda tek parça metin yield edilir.
+    /// </summary>
+    public async IAsyncEnumerable<string> StreamAsync(
+        AgentRequest request,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        if (_chat is null)
+        {
+            yield return "Azure OpenAI yapılandırılmamış. appsettings.Development.json dosyasını kontrol edin.";
+            yield break;
+        }
+
+        // Dosya varsa OCR → streaming yerine tek seferde yanıt döner
+        if (request.File is not null)
+        {
+            var full = await ProcessAsync(request, ct);
+            yield return full.Reply;
+            yield break;
+        }
+
+        var tools = await GetCachedToolsAsync(ct);
+
+        var history = request.History
+            .Select(e => new ChatMessage(new ChatRole(e.Role), e.Content))
+            .ToList();
+
+        if (!history.Any(m => m.Role == ChatRole.System))
+            history.Insert(0, new ChatMessage(ChatRole.System, SystemPrompt.Text));
+
+        history.Add(new ChatMessage(ChatRole.User, request.Message));
+
+        var options = new ChatOptions
+        {
+            Tools = [.. tools],
+            MaxOutputTokens = 1024,
+        };
+
+        _logger.LogInformation("Streaming LLM çağrısı başlatılıyor.");
+
+        await foreach (var update in _chat.GetStreamingResponseAsync(TrimHistory(history), options, ct))
+        {
+            if (!string.IsNullOrEmpty(update.Text))
+                yield return update.Text;
+        }
     }
 
     // ── Yardımcı metotlar ────────────────────────────────────────────────

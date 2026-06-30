@@ -42,9 +42,13 @@ public sealed class PaymentTools
         string? paymentDate,
         CancellationToken ct)
     {
-        DateOnly? parsedDate = paymentDate is not null
-            ? DateOnly.Parse(paymentDate)
-            : null;
+        DateOnly? parsedDate = null;
+        if (paymentDate is not null)
+        {
+            if (!DateOnly.TryParse(paymentDate, out var parsed))
+                return $"Hata: Geçersiz tarih formatı '{paymentDate}'. Beklenen format: yyyy-MM-dd (örn. 2025-06-30).";
+            parsedDate = parsed;
+        }
 
         var body = new { amount, status, paymentDate = parsedDate };
         var response = await _http.PutAsJsonAsync(

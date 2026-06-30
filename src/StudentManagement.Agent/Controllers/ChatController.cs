@@ -61,6 +61,34 @@ public sealed class ChatController : ControllerBase
 
         return Ok(response);
     }
+
+    /// <summary>
+    /// Streaming sohbet — Server-Sent Events (text/event-stream).
+    /// Her token: <c>data: {"token":"..."}\n\n</c>
+    /// Bitiş işareti: <c>data: [DONE]\n\n</c>
+    /// </summary>
+    [HttpPost("stream")]
+    [Consumes("application/json")]
+    public async Task ChatStream(
+        [FromBody] ChatRequest request,
+        CancellationToken ct)
+    {
+        Response.ContentType = "text/event-stream; charset=utf-8";
+        Response.Headers["Cache-Control"] = "no-cache";
+        Response.Headers["X-Accel-Buffering"] = "no";
+
+        var agentRequest = new AgentRequest(request.Message, request.History);
+
+        await foreach (var token in _agent.StreamAsync(agentRequest, ct))
+        {
+            var json = JsonSerializer.Serialize(new { token }, JsonOpts);
+            await Response.WriteAsync($"data: {json}\n\n", ct);
+            await Response.Body.FlushAsync(ct);
+        }
+
+        await Response.WriteAsync("data: [DONE]\n\n", ct);
+        await Response.Body.FlushAsync(ct);
+    }
 }
 
 public sealed record ChatRequest(

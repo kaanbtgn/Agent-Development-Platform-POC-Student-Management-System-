@@ -10,6 +10,12 @@ public interface IExamGradeRepository
     /// <summary>Belirtilen öğrenciye ait tüm ders not kayıtlarını döndürür.</summary>
     Task<IReadOnlyList<ExamGrade>> GetByStudentIdAsync(Guid studentId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Threshold değerinin altında Sınav1 veya Sınav2 notu olan tüm kayıtları tek sorguda döndürür.
+    /// Student navigation property Include edilmiş olarak gelir.
+    /// </summary>
+    Task<IReadOnlyList<ExamGrade>> GetFailingAsync(decimal threshold, CancellationToken ct = default);
+
     /// <summary>Kayıt mevcutsa günceller, yoksa ekler (Upsert).</summary>
     Task UpsertAsync(ExamGrade grade, CancellationToken ct = default);
 

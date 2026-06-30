@@ -19,4 +19,7 @@ public interface IRealtimeNotificationService
 
     /// <summary>Agent veya iş akışında kurtarılamaz hata oluştu.</summary>
     Task SendAgentErrorAsync(string sessionId, string errorMessage, CancellationToken ct = default);
+
+    /// <summary>Streaming akışında bir sonraki token geldi.</summary>
+    Task SendAgentTokenAsync(string sessionId, string token, CancellationToken ct = default);
 }

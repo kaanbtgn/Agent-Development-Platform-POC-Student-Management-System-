@@ -26,6 +26,7 @@ export const useChatStore = create<ChatState>((set) => ({
 
   appendToken: (token) =>
     set((state) => ({
+      isThinking: false, // İlk token gelince "düşünüyor" göstergesini kapat
       isStreaming: true,
       currentStreamingContent: state.currentStreamingContent + token,
     })),

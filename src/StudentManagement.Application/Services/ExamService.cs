@@ -10,18 +10,15 @@ namespace StudentManagement.Application.Services;
 internal sealed class ExamService : IExamService
 {
     private readonly IExamGradeRepository _examGradeRepository;
-    private readonly IStudentRepository _studentRepository;
     private readonly HumanInTheLoopEngine _hitlEngine;
     private readonly ILogger<ExamService> _logger;
 
     public ExamService(
         IExamGradeRepository examGradeRepository,
-        IStudentRepository studentRepository,
         HumanInTheLoopEngine hitlEngine,
         ILogger<ExamService> logger)
     {
         _examGradeRepository = examGradeRepository;
-        _studentRepository = studentRepository;
         _hitlEngine = hitlEngine;
         _logger = logger;
     }
@@ -37,22 +34,8 @@ internal sealed class ExamService : IExamService
     public async Task<IReadOnlyList<ExamGradeDto>> GetFailingAsync(
         decimal threshold = 60, CancellationToken ct = default)
     {
-        var allStudents = await _studentRepository.GetAllAsync(ct);
-
-        var failingGrades = new List<ExamGradeDto>();
-
-        foreach (var student in allStudents)
-        {
-            var grades = await _examGradeRepository.GetByStudentIdAsync(student.Id, ct);
-
-            var failing = grades
-                .Where(g => IsFailing(g, threshold))
-                .Select(g => Map(g, StudentName(g)));
-
-            failingGrades.AddRange(failing);
-        }
-
-        return failingGrades;
+        var grades = await _examGradeRepository.GetFailingAsync(threshold, ct);
+        return grades.Select(g => Map(g, StudentName(g))).ToList();
     }
 
     public async Task<UpsertGradeResult> UpsertGradesAsync(
@@ -136,13 +119,6 @@ internal sealed class ExamService : IExamService
                     $"Sınav2 — {r.CourseName} / {r.StudentNameOrNumber}",
                     r.Exam2Grade!.Value);
         }
-    }
-
-    private static bool IsFailing(ExamGrade g, decimal threshold)
-    {
-        if (g.Exam1Grade.HasValue && g.Exam1Grade < threshold) return true;
-        if (g.Exam2Grade.HasValue && g.Exam2Grade < threshold) return true;
-        return false;
     }
 
     private static string StudentName(ExamGrade g) =>

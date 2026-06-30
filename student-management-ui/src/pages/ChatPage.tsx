@@ -100,12 +100,18 @@ export function ChatPage() {
     setSelectedFile(null);
     addUserMessage(message);
     setSending(true);
+    useChatStore.getState().setThinking(true);
     try {
+      let result;
       if (file) {
-        await agentApi.chatWithDocument(message, file);
+        result = await agentApi.chatWithDocument(message, file);
       } else {
-        await agentApi.chat(message);
+        result = await agentApi.chat(message);
       }
+      useChatStore.getState().setAssistantMessage(result?.reply ?? '');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Bir hata oluştu.';
+      useChatStore.getState().setError(message);
     } finally {
       setSending(false);
     }

@@ -41,4 +41,8 @@ public sealed class SignalRNotificationService : IRealtimeNotificationService
     public Task SendAgentErrorAsync(string sessionId, string errorMessage, CancellationToken ct = default)
         => _hubContext.Clients.Group(sessionId)
             .SendAsync(AgentHubEvents.AgentError, new { error = errorMessage }, ct);
+
+    public Task SendAgentTokenAsync(string sessionId, string token, CancellationToken ct = default)
+        => _hubContext.Clients.Group(sessionId)
+            .SendAsync(AgentHubEvents.AgentTokenReceived, new { token }, ct);
 }

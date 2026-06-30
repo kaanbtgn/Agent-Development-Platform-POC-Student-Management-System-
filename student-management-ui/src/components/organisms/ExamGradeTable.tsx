@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { ExamGradeDto } from '@/types/exam.types';
-import { Button } from '@/components/atoms/Button';
 import { ConfirmationDialog } from '@/components/molecules/ConfirmationDialog';
 
 interface ExamGradeTableProps {
