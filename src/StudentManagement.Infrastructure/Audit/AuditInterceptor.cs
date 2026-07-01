@@ -99,6 +99,7 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
             var entityId   = entry.Properties
                 .FirstOrDefault(p => p.Metadata.Name == "Id")
                 ?.CurrentValue?.ToString() ?? string.Empty;
+            var studentId = ResolveStudentId(entry, entityType, entityId);
 
             string? oldValues = null;
             string? newValues = null;
@@ -117,6 +118,7 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
                 Action     = action,
                 EntityType = entityType,
                 EntityId   = entityId,
+                StudentId  = studentId,
                 OldValues  = oldValues,
                 NewValues  = newValues,
                 Source     = source
@@ -136,5 +138,21 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
                 : kv.Value);
 
         return JsonSerializer.Serialize(sanitized, _jsonOptions);
+    }
+
+    private static string? ResolveStudentId(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry,
+        string entityType,
+        string entityId)
+    {
+        if (entityType == "Student")
+            return entityId;
+
+        var studentIdProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "StudentId");
+        if (studentIdProp is null)
+            return null;
+
+        var value = studentIdProp.CurrentValue ?? studentIdProp.OriginalValue;
+        return value?.ToString();
     }
 }

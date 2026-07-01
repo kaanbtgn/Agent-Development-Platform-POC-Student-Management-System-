@@ -21,6 +21,16 @@ public static class MongoIndexInitializer
                 compoundKey,
                 new CreateIndexOptions { Name = "idx_entityId_timestamp", Background = true }));
 
+        // StudentId + Timestamp compound index — öğrenci bazlı tüm entity audit sorguları için
+        var studentCompoundKey = Builders<AuditEntry>.IndexKeys
+            .Ascending(x => x.StudentId)
+            .Descending(x => x.Timestamp);
+
+        await collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<AuditEntry>(
+                studentCompoundKey,
+                new CreateIndexOptions { Name = "idx_studentId_timestamp", Background = true }));
+
         // Timestamp TTL index — 180 gün sonra otomatik sil (KVKK saklama süresi)
         var ttlKey = Builders<AuditEntry>.IndexKeys.Ascending(x => x.Timestamp);
 

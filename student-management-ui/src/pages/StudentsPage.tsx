@@ -37,6 +37,8 @@ const editSchema = z.object({
 type EditFormData = z.infer<typeof editSchema>;
 
 type DetailTab = 'payments' | 'exams' | 'audit';
+const DETAIL_PANEL_DEFAULT_WIDTH = 680;
+const DETAIL_PANEL_MIN_WIDTH = 420;
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -55,6 +57,13 @@ export function StudentsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentDto | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('payments');
+  const [isResizingPanel, setIsResizingPanel] = useState(false);
+  const [detailPanelWidth, setDetailPanelWidth] = useState(() => {
+    if (typeof window === 'undefined') return DETAIL_PANEL_DEFAULT_WIDTH;
+    const maxWidth = Math.max(280, Math.floor(window.innerWidth * 0.95));
+    const minWidth = Math.min(DETAIL_PANEL_MIN_WIDTH, maxWidth);
+    return Math.min(maxWidth, Math.max(minWidth, DETAIL_PANEL_DEFAULT_WIDTH));
+  });
 
   const createForm = useForm<CreateFormData>({ resolver: zodResolver(createSchema) });
   const editForm = useForm<EditFormData>({ resolver: zodResolver(editSchema) });
@@ -81,6 +90,43 @@ export function StudentsPage() {
     await remove(id);
     if (selectedStudent?.id === id) setSelectedStudent(null);
   };
+
+  const clampDetailPanelWidth = (nextWidth: number) => {
+    const maxWidth = Math.max(280, Math.floor(window.innerWidth * 0.95));
+    const minWidth = Math.min(DETAIL_PANEL_MIN_WIDTH, maxWidth);
+    return Math.min(maxWidth, Math.max(minWidth, nextWidth));
+  };
+
+  useEffect(() => {
+    const handleWindowResize = () =>
+      setDetailPanelWidth((current) => clampDetailPanelWidth(current));
+
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizingPanel) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const nextWidth = window.innerWidth - event.clientX;
+      setDetailPanelWidth(clampDetailPanelWidth(nextWidth));
+    };
+
+    const stopResizing = () => setIsResizingPanel(false);
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopResizing);
+
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [isResizingPanel]);
 
   return (
     <div className="flex flex-1 overflow-hidden relative">
@@ -138,8 +184,16 @@ export function StudentsPage() {
             onClick={() => setSelectedStudent(null)}
           />
           {/* Slide-in panel */}
-          <div className="absolute right-0 top-0 bottom-0 z-30 w-[480px] flex flex-col animate-slide-in-right shadow-2xl"
-            style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)' }}>
+          <div
+            className="absolute right-0 top-0 bottom-0 z-30 min-w-0 max-w-[95vw] flex flex-col animate-slide-in-right shadow-2xl"
+            style={{ width: `${detailPanelWidth}px`, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)' }}
+          >
+            <button
+              type="button"
+              aria-label="Detay paneli genişliğini ayarla"
+              className="absolute left-0 top-0 h-full w-2 -translate-x-1/2 cursor-col-resize border-l border-indigo-200/80 bg-transparent hover:border-indigo-400"
+              onMouseDown={() => setIsResizingPanel(true)}
+            />
             <DetailPanel
               student={selectedStudent}
               tab={detailTab}

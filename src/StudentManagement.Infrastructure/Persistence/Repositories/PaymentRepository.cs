@@ -33,27 +33,42 @@ internal sealed class PaymentRepository : IPaymentRepository
             .Where(p => p.Status == PaymentStatus.Pending || p.Status == PaymentStatus.Overdue)
             .ToListAsync(ct);
 
-    // ON CONFLICT ile atomik upsert; EF Core Add/Update kombinasyonundan kaçınılır.
-    // Kolon isimleri EF Core + Npgsql'in ürettiği quoted PascalCase ile eşleşmektedir.
     public async Task UpsertAsync(InternshipPayment payment, CancellationToken ct = default)
     {
-        await _context.Database.ExecuteSqlAsync(
-            $"""
-            INSERT INTO internship_payments
-                ("Id", "StudentId", "PeriodYear", "PeriodMonth", "Amount", "PaymentDate", "Status", "CreatedAt", "UpdatedAt")
-            VALUES
-                ({payment.Id}, {payment.StudentId}, {payment.PeriodYear}, {payment.PeriodMonth},
-                 {payment.Amount}, {payment.PaymentDate}, {(int)payment.Status}, {payment.CreatedAt}, {DateTimeOffset.UtcNow})
-            ON CONFLICT ("StudentId", "PeriodYear", "PeriodMonth")
-            DO UPDATE SET
-                "Amount"      = EXCLUDED."Amount",
-                "PaymentDate" = EXCLUDED."PaymentDate",
-                "Status"      = EXCLUDED."Status",
-                "UpdatedAt"   = EXCLUDED."UpdatedAt"
-            """, ct);
+        var existing = await _context.InternshipPayments
+            .SingleOrDefaultAsync(
+                p => p.StudentId == payment.StudentId
+                  && p.PeriodYear == payment.PeriodYear
+                  && p.PeriodMonth == payment.PeriodMonth,
+                ct);
+
+        if (existing is null)
+        {
+            await _context.InternshipPayments.AddAsync(payment, ct);
+        }
+        else
+        {
+            existing.Amount = payment.Amount;
+            existing.PaymentDate = payment.PaymentDate;
+            existing.Status = payment.Status;
+        }
+
+        await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteByStudentAndPeriodAsync(Guid studentId, int year, int month, CancellationToken ct = default)
-        => await _context.Database.ExecuteSqlAsync(
-            $"""DELETE FROM internship_payments WHERE "StudentId" = {studentId} AND "PeriodYear" = {year} AND "PeriodMonth" = {month}""", ct);
+    {
+        var existing = await _context.InternshipPayments
+            .SingleOrDefaultAsync(
+                p => p.StudentId == studentId
+                  && p.PeriodYear == year
+                  && p.PeriodMonth == month,
+                ct);
+
+        if (existing is null)
+            return;
+
+        _context.InternshipPayments.Remove(existing);
+        await _context.SaveChangesAsync(ct);
+    }
 }

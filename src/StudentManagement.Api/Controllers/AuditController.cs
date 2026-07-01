@@ -24,8 +24,16 @@ public sealed class AuditController : ControllerBase
     public async Task<IActionResult> GetStudentAuditHistoryAsync(
         Guid studentId, CancellationToken ct)
     {
+        var studentIdText = studentId.ToString();
+        var filter = Builders<AuditEntry>.Filter.Or(
+            Builders<AuditEntry>.Filter.Eq(x => x.StudentId, studentIdText),
+            Builders<AuditEntry>.Filter.And(
+                Builders<AuditEntry>.Filter.Eq(x => x.EntityType, "Student"),
+                Builders<AuditEntry>.Filter.Eq(x => x.EntityId, studentIdText))
+        );
+
         var entries = await _auditLogs
-            .Find(x => x.EntityId == studentId.ToString() && x.EntityType == "Student")
+            .Find(filter)
             .SortByDescending(x => x.Timestamp)
             .Limit(50)
             .ToListAsync(ct);

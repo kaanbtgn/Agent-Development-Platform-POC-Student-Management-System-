@@ -23,8 +23,8 @@ export function ExamGradeTable({ grades, onEdit, onDelete }: ExamGradeTableProps
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-white/40 shadow-md" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)' }}>
-        <table className="min-w-full divide-y divide-gray-100 text-sm">
+      <div className="overflow-x-auto rounded-xl border border-white/40 shadow-md" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)' }}>
+        <table className="w-full min-w-[560px] divide-y divide-gray-100 text-sm">
           <thead>
             <tr style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.07), rgba(139,92,246,0.04))' }}>
               {['Ders Adı', '1. Sınav', '2. Sınav', ''].map((h) => (
