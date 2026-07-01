@@ -1,0 +1,15 @@
+**/.git
+**/.vscode
+**/.vs
+**/bin
+**/obj
+**/node_modules
+**/.env
+**/.env.development
+**/.env.local
+**/npm-debug.log*
+**/dist
+**/*.user
+**/*.suo
+**/*.md
+tests/
