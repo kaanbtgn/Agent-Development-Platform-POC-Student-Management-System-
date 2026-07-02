@@ -60,7 +60,11 @@ public static class ServiceCollectionExtensions
                 .GetChatClient(deploymentName)
                 .AsIChatClient()
                 .AsBuilder()
-                .UseFunctionInvocation()
+                .UseFunctionInvocation(configure: client =>
+                {
+                    client.MaximumIterationsPerRequest = 3;
+                    client.MaximumConsecutiveErrorsPerRequest = 3;
+                })
                 .Build());
         }
         // ── Orkestratör ─────────────────────────────────────────────────

@@ -39,43 +39,67 @@ public sealed class GenerateDocumentTool
         "Excel için contentJson içinde ExcelDocumentContent şeması (SheetName, Headers, Rows) beklenir. " +
         "Word ve PDF için StandardDocumentContent şeması (Title, Sections) beklenir.")]
     public async Task<string> GenerateDocumentAsync(
-        [Description("Çıktı formatı: 'Word', 'Excel' veya 'Pdf'")]
-        DocumentOutputFormat format,
+        [Description("Çıktı formatı: 'Word', 'Excel' veya 'Pdf' (zorunlu)")]
+        string? format = null,
 
         [Description(
-            "Belge içeriğini temsil eden JSON string. " +
+            "Belge içeriğini temsil eden JSON string (zorunlu). " +
             "Excel → {\"sheetName\":\"...\",\"headers\":[...],\"rows\":[[...],...]}, " +
             "Word/Pdf → {\"title\":\"...\",\"sections\":[{\"heading\":\"...\",\"body\":\"...\",\"tables\":[{\"headers\":[...],\"rows\":[[...]]}]}]}")]
-        string contentJson,
+        string? contentJson = null,
 
         CancellationToken ct = default)
     {
+        // format/contentJson bilinçli olarak nullable + varsayılan değerli bırakıldı:
+        // aksi halde LLM parametreyi atladığında AIFunctionFactory, metot gövdesine hiç
+        // girmeden "required parameter missing" hatasıyla isteğin tamamını çökertiyor.
+        // Burada yakalayıp LLM'in düzeltebileceği açık bir hata mesajı döndürüyoruz.
+        if (string.IsNullOrWhiteSpace(format))
+            return "Hata: 'format' parametresi zorunludur. Geçerli değerler: 'Word', 'Excel', 'Pdf'.";
+
+        if (!Enum.TryParse<DocumentOutputFormat>(format, ignoreCase: true, out var parsedFormat))
+            return $"Hata: Geçersiz format '{format}'. Geçerli değerler: 'Word', 'Excel', 'Pdf'.";
+
+        if (string.IsNullOrWhiteSpace(contentJson))
+            return "Hata: 'contentJson' parametresi zorunludur.";
+
         byte[] fileBytes;
         string fileName;
         string contentType;
 
-        switch (format)
+        try
         {
-            case DocumentOutputFormat.Excel:
-                var excelContent = JsonSerializer.Deserialize<ExcelDocumentContent>(contentJson, JsonOptions)
-                    ?? throw new ArgumentException("contentJson geçerli bir ExcelDocumentContent değil.");
-                (fileBytes, fileName, contentType) = _excel.Generate(excelContent);
-                break;
+            switch (parsedFormat)
+            {
+                case DocumentOutputFormat.Excel:
+                    var excelContent = JsonSerializer.Deserialize<ExcelDocumentContent>(contentJson, JsonOptions)
+                        ?? throw new ArgumentException("contentJson geçerli bir ExcelDocumentContent değil.");
+                    (fileBytes, fileName, contentType) = _excel.Generate(excelContent);
+                    break;
 
-            case DocumentOutputFormat.Word:
-                var wordContent = JsonSerializer.Deserialize<StandardDocumentContent>(contentJson, JsonOptions)
-                    ?? throw new ArgumentException("contentJson geçerli bir StandardDocumentContent değil.");
-                (fileBytes, fileName, contentType) = _word.Generate(wordContent);
-                break;
+                case DocumentOutputFormat.Word:
+                    var wordContent = JsonSerializer.Deserialize<StandardDocumentContent>(contentJson, JsonOptions)
+                        ?? throw new ArgumentException("contentJson geçerli bir StandardDocumentContent değil.");
+                    (fileBytes, fileName, contentType) = _word.Generate(wordContent);
+                    break;
 
-            case DocumentOutputFormat.Pdf:
-                var pdfContent = JsonSerializer.Deserialize<StandardDocumentContent>(contentJson, JsonOptions)
-                    ?? throw new ArgumentException("contentJson geçerli bir StandardDocumentContent değil.");
-                (fileBytes, fileName, contentType) = _pdf.Generate(pdfContent);
-                break;
+                case DocumentOutputFormat.Pdf:
+                    var pdfContent = JsonSerializer.Deserialize<StandardDocumentContent>(contentJson, JsonOptions)
+                        ?? throw new ArgumentException("contentJson geçerli bir StandardDocumentContent değil.");
+                    (fileBytes, fileName, contentType) = _pdf.Generate(pdfContent);
+                    break;
 
-            default:
-                throw new ArgumentOutOfRangeException(nameof(format), format, "Desteklenmeyen format.");
+                default:
+                    return $"Hata: Desteklenmeyen format '{format}'.";
+            }
+        }
+        catch (JsonException ex)
+        {
+            return $"Hata: contentJson geçerli bir JSON değil ({ex.Message}).";
+        }
+        catch (ArgumentException ex)
+        {
+            return $"Hata: {ex.Message}";
         }
 
         // Üretilen dosyayı API'nin iç endpoint'ine yükle

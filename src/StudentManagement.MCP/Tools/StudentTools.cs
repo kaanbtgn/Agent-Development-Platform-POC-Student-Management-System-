@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Net.Http.Json;
+using System.Text.Json;
 using ModelContextProtocol.Server;
 
 namespace StudentManagement.MCP.Tools;
@@ -30,6 +31,46 @@ public sealed class StudentTools
     {
         var response = await _http.GetAsync($"api/students/search?term={Uri.EscapeDataString(term)}", ct);
         return await response.Content.ReadAsStringAsync(ct);
+    }
+
+    [McpServerTool]
+    [Description(
+        "Sisteme yeni bir öğrenci kaydı ekler. YALNIZCA gerçekten yeni bir öğrenci içindir; " +
+        "çağırmadan önce FuzzyMatchStudents ile öğrencinin sistemde zaten olup olmadığını kontrol et " +
+        "ve kullanıcıdan 'yeni kayıt oluşturulsun mu?' onayı almadan çağırma. " +
+        "Başarılı olursa dönen studentId ile aynı akışta UpsertPayment veya UpsertExamGrade çağrılabilir.")]
+    public async Task<string> CreateStudent(
+        [Description("Öğrencinin adı")]
+        string firstName,
+        [Description("Öğrencinin soyadı")]
+        string lastName,
+        [Description("Öğrenci numarası (benzersiz olmalı; zaten kayıtlıysa hata döner)")]
+        string studentNumber,
+        [Description("Öğrencinin bölümü")]
+        string department,
+        [Description("Telefon numarası (yoksa null)")]
+        string? phone,
+        [Description("Kayıt tarihi (yyyy-MM-dd formatında, örn. 2025-09-01)")]
+        string enrollmentDate,
+        CancellationToken ct)
+    {
+        if (!DateOnly.TryParse(enrollmentDate, out var parsedDate))
+            return $"Hata: Geçersiz tarih formatı '{enrollmentDate}'. Beklenen format: yyyy-MM-dd (örn. 2025-09-01).";
+
+        var body = new { firstName, lastName, studentNumber, department, phone, enrollmentDate = parsedDate };
+        var response = await _http.PostAsJsonAsync("api/students", body, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            var detail = TryExtractProblemDetail(errorBody);
+            return detail is not null ? $"Hata: {detail}" : $"Hata: {response.StatusCode}";
+        }
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(json);
+        var studentId = doc.RootElement.GetProperty("id").GetGuid();
+        return $"Öğrenci oluşturuldu. StudentId: {studentId}";
     }
 
     [McpServerTool]
@@ -84,5 +125,20 @@ public sealed class StudentTools
         var response = await _http.GetAsync(
             $"api/students/fuzzy-search?q={Uri.EscapeDataString(query)}&threshold={threshold.ToString(CultureInfo.InvariantCulture)}", ct);
         return await response.Content.ReadAsStringAsync(ct);
+    }
+
+    // API'nin ProblemDetails (application/problem+json) gövdesinden 'detail' alanını okur;
+    // örn. DuplicateStudentNumberException mesajını kullanıcıya olduğu gibi iletmek için.
+    private static string? TryExtractProblemDetail(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return doc.RootElement.TryGetProperty("detail", out var detail) ? detail.GetString() : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import { ChatPanel } from '@/components/organisms/ChatPanel';
 import { SessionSidebar } from '@/components/organisms/SessionSidebar';
 import { OcrProgressBar } from '@/components/molecules/OcrProgressBar';
 import { FileUploadDropzone } from '@/components/molecules/FileUploadDropzone';
-import { Spinner } from '@/components/atoms/Spinner';
 import { useChatStore } from '@/store/chatStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSignalR } from '@/hooks/useSignalR';
@@ -32,6 +32,7 @@ export function ChatPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
   const wasThinkingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useSignalR(currentSessionId);
 
@@ -101,20 +102,31 @@ export function ChatPage() {
     addUserMessage(message);
     setSending(true);
     useChatStore.getState().setThinking(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
       let result;
       if (file) {
-        result = await agentApi.chatWithDocument(message, file);
+        result = await agentApi.chatWithDocument(message, file, controller.signal);
       } else {
-        result = await agentApi.chat(message);
+        result = await agentApi.chat(message, controller.signal);
       }
       useChatStore.getState().setAssistantMessage(result?.reply ?? '');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Bir hata oluştu.';
-      useChatStore.getState().setError(message);
+      if (axios.isCancel(err)) {
+        useChatStore.getState().setAssistantMessage('İstek iptal edildi.');
+      } else {
+        const message = err instanceof Error ? err.message : 'Bir hata oluştu.';
+        useChatStore.getState().setError(message);
+      }
     } finally {
+      abortControllerRef.current = null;
       setSending(false);
     }
+  };
+
+  const handleCancel = () => {
+    abortControllerRef.current?.abort();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -187,12 +199,21 @@ export function ChatPage() {
               disabled={isThinking || sending}
             />
             <button
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-white transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-40 shadow-lg shadow-indigo-500/30"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-              onClick={handleSend}
-              disabled={!input.trim() || isThinking || sending}
+              className={
+                sending
+                  ? 'flex h-10 w-10 items-center justify-center rounded-xl text-white transition-all hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-red-500/30'
+                  : 'flex h-10 w-10 items-center justify-center rounded-xl text-white transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-40 shadow-lg shadow-indigo-500/30'
+              }
+              style={
+                sending
+                  ? { background: 'linear-gradient(135deg, #ef4444, #dc2626)' }
+                  : { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }
+              }
+              onClick={sending ? handleCancel : handleSend}
+              disabled={!sending && (!input.trim() || isThinking)}
+              title={sending ? 'İsteği iptal et' : 'Gönder'}
             >
-              {sending ? <Spinner size="sm" className="text-white" /> : '↑'}
+              {sending ? '■' : '↑'}
             </button>
           </div>
         </div>

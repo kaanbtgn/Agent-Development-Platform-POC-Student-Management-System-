@@ -3,6 +3,7 @@ using NLog.Web;
 using Scalar.AspNetCore;
 using StudentManagement.Agent;
 using StudentManagement.Agent.Extensions;
+using StudentManagement.Agent.Middleware;
 
 var logger = LogManager.Setup()
     .LoadConfigurationFromFile("nlog.config")
@@ -27,6 +28,7 @@ try
         app.MapScalarApiReference();
     }
 
+    app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseHttpsRedirection();
     app.MapControllers();
     app.MapGet("/", () => Results.Redirect("/scalar/v1"));

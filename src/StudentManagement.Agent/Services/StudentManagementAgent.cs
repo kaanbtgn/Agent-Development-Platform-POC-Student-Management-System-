@@ -1,6 +1,9 @@
+using System.ClientModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using Polly;
+using Polly.Retry;
 using StudentManagement.Agent.Services.Models;
 using StudentManagement.Agent.Services.Prompts;
 
@@ -22,6 +25,7 @@ public sealed class StudentManagementAgent
     private IList<McpClientTool>? _cachedTools;
 
     private const int MaxMessagesPerSession = 20;
+    private const int MaxLlmRetries = 3;
 
     public StudentManagementAgent(
         Lazy<Task<McpClient>> mcpClientFactory,
@@ -92,7 +96,9 @@ public sealed class StudentManagementAgent
         };
 
         var trimmedHistory = TrimHistory(history);
-        var completion = await _chat.GetResponseAsync(trimmedHistory, options, ct);
+        var retryPolicy = CreateLlmRetryPolicy(ct);
+        var completion = await retryPolicy.ExecuteAsync(
+            callCt => _chat.GetResponseAsync(trimmedHistory, options, callCt), ct);
 
         var reply = completion.Text ?? string.Empty;
 
@@ -144,14 +150,85 @@ public sealed class StudentManagementAgent
 
         _logger.LogInformation("Streaming LLM çağrısı başlatılıyor.");
 
-        await foreach (var update in _chat.GetStreamingResponseAsync(TrimHistory(history), options, ct))
+        var trimmedHistory = TrimHistory(history);
+        var yieldedAny = false;
+
+        for (var attempt = 1; attempt <= MaxLlmRetries; attempt++)
         {
-            if (!string.IsNullOrEmpty(update.Text))
-                yield return update.Text;
+            var shouldRetry = false;
+            Exception? pendingError = null;
+
+            await using (var enumerator = _chat.GetStreamingResponseAsync(trimmedHistory, options, ct)
+                .GetAsyncEnumerator(ct))
+            {
+                while (true)
+                {
+                    bool moved;
+                    ChatResponseUpdate? current = null;
+
+                    try
+                    {
+                        moved = await enumerator.MoveNextAsync();
+                        if (moved) current = enumerator.Current;
+                    }
+                    catch (Exception ex) when (!ct.IsCancellationRequested)
+                    {
+                        if (!yieldedAny && attempt < MaxLlmRetries && IsTransientLlmError(ex))
+                        {
+                            pendingError = ex;
+                            shouldRetry = true;
+                            break;
+                        }
+
+                        throw;
+                    }
+
+                    if (!moved) yield break;
+
+                    if (!string.IsNullOrEmpty(current!.Text))
+                    {
+                        yieldedAny = true;
+                        yield return current.Text;
+                    }
+                }
+            }
+
+            if (!shouldRetry) yield break;
+
+            _logger.LogWarning(
+                pendingError,
+                "Streaming LLM çağrısında geçici hata (deneme {Attempt}/{Max}): {Error}",
+                attempt, MaxLlmRetries, pendingError?.Message);
+
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
         }
     }
 
     // ── Yardımcı metotlar ────────────────────────────────────────────────
+
+    /// <summary>
+    /// LLM çağrılarını (rate limit, 5xx, geçici ağ hatası) en fazla <see cref="MaxLlmRetries"/>
+    /// kez, üstel bekleme ile yeniden dener. Kullanıcı isteği iptal ettiyse (cancel butonu)
+    /// yeniden denemez — <see cref="OperationCanceledException"/> anında yükselir.
+    /// </summary>
+    private AsyncRetryPolicy CreateLlmRetryPolicy(CancellationToken ct) =>
+        Policy
+            .Handle<Exception>(ex => !ct.IsCancellationRequested && IsTransientLlmError(ex))
+            .WaitAndRetryAsync(
+                retryCount: MaxLlmRetries - 1,
+                sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+                onRetry: (exception, delay, attempt, _) =>
+                    _logger.LogWarning(
+                        "LLM çağrısında geçici hata (deneme {Attempt}/{Max}, bekleme {Delay}s): {Error}",
+                        attempt, MaxLlmRetries, delay.TotalSeconds, exception.Message));
+
+    private static bool IsTransientLlmError(Exception ex) => ex switch
+    {
+        ClientResultException cre => cre.Status is 429 or 500 or 502 or 503 or 504,
+        HttpRequestException => true,
+        TaskCanceledException => true,
+        _ => false,
+    };
 
     private async Task<IList<McpClientTool>> GetCachedToolsAsync(CancellationToken ct)
     {
