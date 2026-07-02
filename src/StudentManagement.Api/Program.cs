@@ -49,7 +49,7 @@ try
             else if (builder.Environment.IsDevelopment())
             {
                 // Development: localhost varyantlarına izin ver
-                policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5000")
+                policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5100")
                       .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
             }
             else

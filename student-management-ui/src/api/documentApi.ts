@@ -6,10 +6,10 @@ export const documentApi = {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('sessionId', sessionId);
+    // Don't set Content-Type manually: it would omit the multipart boundary and
+    // break parsing server-side. Let axios/browser generate it automatically.
     return axiosInstance
-      .post<UploadAsyncResponse>('/api/documents/upload-async', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      .post<UploadAsyncResponse>('/api/documents/upload-async', formData)
       .then((r) => r.data);
   },
 

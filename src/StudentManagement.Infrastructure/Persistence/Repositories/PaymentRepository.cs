@@ -27,6 +27,13 @@ internal sealed class PaymentRepository : IPaymentRepository
             .Where(p => p.PeriodYear == year && p.PeriodMonth == month)
             .ToListAsync(ct);
 
+    public async Task<InternshipPayment?> GetByStudentAndPeriodAsync(
+        Guid studentId, int year, int month, CancellationToken ct = default)
+        => await _context.InternshipPayments
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                p => p.StudentId == studentId && p.PeriodYear == year && p.PeriodMonth == month, ct);
+
     public async Task<IReadOnlyList<InternshipPayment>> GetUnpaidAsync(CancellationToken ct = default)
         => await _context.InternshipPayments
             .AsNoTracking()

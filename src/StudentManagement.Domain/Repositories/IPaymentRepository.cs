@@ -16,6 +16,10 @@ public interface IPaymentRepository
     /// <summary>Belirtilen yıl ve aya ait tüm ödeme kayıtlarını döndürür.</summary>
     Task<IReadOnlyList<InternshipPayment>> GetByPeriodAsync(int year, int month, CancellationToken ct = default);
 
+    /// <summary>Belirtilen öğrenci ve döneme ait ödeme kaydını döndürür; bulunamazsa <c>null</c>.</summary>
+    Task<InternshipPayment?> GetByStudentAndPeriodAsync(
+        Guid studentId, int year, int month, CancellationToken ct = default);
+
     /// <summary>Durumu <c>Pending</c> veya <c>Overdue</c> olan tüm ödeme kayıtlarını döndürür.</summary>
     Task<IReadOnlyList<InternshipPayment>> GetUnpaidAsync(CancellationToken ct = default);
 

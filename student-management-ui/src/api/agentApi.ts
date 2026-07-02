@@ -10,7 +10,7 @@ export const agentApi = {
     const formData = new FormData();
     formData.append('message', message);
     formData.append('file', file);
-    // sessionId is sent via X-Session-Id header by axiosInstance interceptor
+    // sessionId is sent via X-Session-Id header by axiosInstance interceptor.
     return axiosInstance
       .post<AgentResponse>('/api/chat/document', formData)
       .then((r) => r.data);

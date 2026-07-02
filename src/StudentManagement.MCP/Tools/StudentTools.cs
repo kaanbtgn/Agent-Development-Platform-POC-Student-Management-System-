@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 
@@ -81,7 +82,7 @@ public sealed class StudentTools
         CancellationToken ct = default)
     {
         var response = await _http.GetAsync(
-            $"api/students/fuzzy-search?q={Uri.EscapeDataString(query)}&threshold={threshold}", ct);
+            $"api/students/fuzzy-search?q={Uri.EscapeDataString(query)}&threshold={threshold.ToString(CultureInfo.InvariantCulture)}", ct);
         return await response.Content.ReadAsStringAsync(ct);
     }
 }

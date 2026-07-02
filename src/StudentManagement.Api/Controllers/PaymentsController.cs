@@ -48,4 +48,4 @@ public sealed class PaymentsController : ControllerBase
     }
 }
 
-public sealed record ApiUpsertPaymentRequest(decimal Amount, DateOnly? PaymentDate, int? Status = null);
+public sealed record ApiUpsertPaymentRequest(decimal? Amount, DateOnly? PaymentDate, int? Status = null);

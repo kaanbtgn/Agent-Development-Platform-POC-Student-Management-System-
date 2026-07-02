@@ -26,6 +26,8 @@ public sealed class PaymentTools
     [McpServerTool]
     [Description(
         "Belirtilen dönem (yıl/ay) için staj burs ödemesini ekler veya günceller. " +
+        "Sadece değiştirilecek alanı gönder; diğerlerini null bırak (mevcut kayıttan korunur). " +
+        "Yeni kayıt oluşturuluyorsa amount zorunludur. " +
         "Status değerleri: 0=Pending, 1=Paid, 2=Overdue, 3=Cancelled.")]
     public async Task<string> UpsertPayment(
         [Description("Öğrencinin benzersiz kimliği (UUID)")]
@@ -34,11 +36,11 @@ public sealed class PaymentTools
         int year,
         [Description("Ödeme döneminin ayı (1-12)")]
         int month,
-        [Description("Ödeme tutarı")]
-        decimal amount,
-        [Description("Ödeme durumu: 0=Pending, 1=Paid, 2=Overdue, 3=Cancelled")]
-        int status,
-        [Description("Fiili ödeme tarihi (yyyy-MM-dd formatında, ödenmemişse null)")]
+        [Description("Ödeme tutarı (değiştirilmeyecekse null; yeni kayıtta zorunlu)")]
+        decimal? amount,
+        [Description("Ödeme durumu: 0=Pending, 1=Paid, 2=Overdue, 3=Cancelled (değiştirilmeyecekse null)")]
+        int? status,
+        [Description("Fiili ödeme tarihi (yyyy-MM-dd formatında, değiştirilmeyecekse null)")]
         string? paymentDate,
         CancellationToken ct)
     {

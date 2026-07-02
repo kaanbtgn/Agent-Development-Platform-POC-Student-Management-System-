@@ -1,11 +1,13 @@
 import axios from 'axios';
 import { getCurrentSessionId } from '@/store/sessionStore';
 
+// No default Content-Type header here: axios auto-sets 'application/json' for
+// plain object payloads and must be left untouched for FormData payloads so the
+// browser can generate the correct 'multipart/form-data; boundary=...' header.
+// A forced 'application/json' default breaks file-upload requests (axios detects
+// the JSON content-type and stringifies the FormData instead of sending it raw).
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 axiosInstance.interceptors.request.use((config) => {

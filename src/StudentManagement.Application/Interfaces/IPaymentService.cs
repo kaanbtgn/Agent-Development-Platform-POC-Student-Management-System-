@@ -16,9 +16,10 @@ public interface IPaymentService
 
     /// <summary>
     /// MCP tool'ları için direkt upsert — StudentId zaten bilinmektedir, fuzzy match yapılmaz.
+    /// Yalnızca gönderilen (null olmayan) alanlar güncellenir; diğerleri mevcut kayıttan korunur.
     /// </summary>
     Task UpsertDirectAsync(
-        Guid studentId, int year, int month, decimal amount, DateOnly? paymentDate,
+        Guid studentId, int year, int month, decimal? amount, DateOnly? paymentDate,
         int? status = null, CancellationToken ct = default);
 
     /// <summary>Belirtilen öğrencinin belirtilen döneme ait ödeme kaydını siler.</summary>

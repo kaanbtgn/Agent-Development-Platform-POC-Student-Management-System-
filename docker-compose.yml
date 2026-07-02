@@ -66,7 +66,7 @@ services:
       dockerfile: src/StudentManagement.Api/Dockerfile
     restart: unless-stopped
     ports:
-      - "5000:8080"
+      - "5100:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       AllowedOrigin: ${ALLOWED_ORIGIN:-http://localhost}

@@ -3,6 +3,7 @@ using StudentManagement.Application.DTOs;
 using StudentManagement.Application.Interfaces;
 using StudentManagement.Domain.Entities;
 using StudentManagement.Domain.Enums;
+using StudentManagement.Domain.Exceptions;
 using StudentManagement.Domain.Repositories;
 
 namespace StudentManagement.Application.Services;
@@ -95,25 +96,33 @@ internal sealed class PaymentService : IPaymentService
     }
 
     public async Task UpsertDirectAsync(
-        Guid studentId, int year, int month, decimal amount, DateOnly? paymentDate,
+        Guid studentId, int year, int month, decimal? amount, DateOnly? paymentDate,
         int? status = null, CancellationToken ct = default)
     {
+        var existing = await _paymentRepository.GetByStudentAndPeriodAsync(studentId, year, month, ct);
+
+        var resolvedAmount = amount
+            ?? existing?.Amount
+            ?? throw new PaymentAmountRequiredException(studentId, year, month);
+        var resolvedPaymentDate = paymentDate ?? existing?.PaymentDate;
         var resolvedStatus = status.HasValue
             ? (PaymentStatus)status.Value
-            : (paymentDate.HasValue ? PaymentStatus.Paid : PaymentStatus.Pending);
+            : existing?.Status ?? (resolvedPaymentDate.HasValue ? PaymentStatus.Paid : PaymentStatus.Pending);
+
         var payment = new InternshipPayment(
-            id: Guid.NewGuid(),
+            id: existing?.Id ?? Guid.NewGuid(),
             studentId: studentId,
             periodYear: year,
             periodMonth: month,
-            amount: amount,
+            amount: resolvedAmount,
             status: resolvedStatus,
-            paymentDate: paymentDate);
+            paymentDate: resolvedPaymentDate,
+            createdAt: existing?.CreatedAt);
 
         await _paymentRepository.UpsertAsync(payment, ct);
         _logger.LogInformation(
             "UpsertDirect payment: StudentId={StudentId} {Year}/{Month} Amount={Amount} Status={Status}.",
-            studentId, year, month, amount, resolvedStatus);
+            studentId, year, month, resolvedAmount, resolvedStatus);
     }
 
     public async Task DeleteAsync(Guid studentId, int year, int month, CancellationToken ct = default)

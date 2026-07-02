@@ -58,8 +58,8 @@ internal sealed class ExamGradeRepository : IExamGradeRepository
                  {grade.Exam1Grade}, {grade.Exam2Grade}, {grade.CreatedAt}, {DateTimeOffset.UtcNow})
             ON CONFLICT ("StudentId", "CourseName")
             DO UPDATE SET
-                "Exam1Grade" = EXCLUDED."Exam1Grade",
-                "Exam2Grade" = EXCLUDED."Exam2Grade",
+                "Exam1Grade" = COALESCE(EXCLUDED."Exam1Grade", exam_grades."Exam1Grade"),
+                "Exam2Grade" = COALESCE(EXCLUDED."Exam2Grade", exam_grades."Exam2Grade"),
                 "UpdatedAt"  = EXCLUDED."UpdatedAt"
             """, ct);
     }
