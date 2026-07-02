@@ -1,10 +1,51 @@
-# Student Management System
+# Agent Development Platform POC
 
-An AI-agent-powered student management system built with .NET 10 and React. It manages student records, internship payments, and exam grades — with a multi-process AI agent that can parse uploaded documents (OCR), answer natural language queries about the data, and generate formatted Word/Excel reports.
+An abstract, reusable **Agent Development Platform POC** built with .NET 10 and React.  
+This repository includes a full **Student Management** reference agent (students, payments, grades) and demonstrates how to build additional domain agents on the same core architecture by changing prompts, MCP tools, and API integrations.
+
+## Recent Updates
+
+- Repositioned the solution as an **Agent Development Platform POC** with a reusable multi-process agent core.
+- Added `CreateStudent` MCP tool and end-to-end flow for creating new student records from chat/OCR context.
+- Added frontend request cancellation and backend cancellation-safe handling (`499` on client abort).
+- Added guardrails against loops:
+  - max tool-call iterations/consecutive errors = 3
+  - max LLM retry = 3 (transient errors only)
+- Hardened document generation pipeline:
+  - resilient handling for missing `format` / `contentJson`
+  - configurable `AzureOpenAI:MaxOutputTokens` (default: 8000)
+  - Excel sheet-name sanitization (invalid chars / >31 chars / empty values)
+  - lenient Excel cell parsing (text + numeric values)
+  - Word/PDF null-safety guards for omitted content fields
+
+## Highlights from Commit History
+
+The following items are based on recent commits and summarize what was added/refined in the platform:
+
+| Commit | Highlights |
+|---|---|
+| `53c8d4f` | Document-generation reliability improvements, SystemPrompt updates, and wider output-token budget for larger report payloads. |
+| `afe3137` | 3x exponential retry limits, request cancellation button, `CreateStudent` tooling, and Agent-side global exception middleware. |
+| `1fa553f` | OCR flow fixes, payment/exam routine optimizations, API port update, and Docker-oriented runtime updates. |
+| `d642d08` | Audit log storage/display refactor and UI improvements for payments and audit views. |
+| `d29e7f6` | Streaming chat with SSE and improved agent response handling. |
+| `9ba1329` | Redis + MongoDB chat session history implementation. |
+| `b49b874` | Dynamic/fail-closed CORS `AllowedOrigin` policy refactor. |
+| `76743f5` | Docker setup for PostgreSQL, MongoDB, and Redis with environment/Nginx updates. |
+
+## Building New Agents with This Platform
+
+Use the same platform to create different agents (HR, Finance, Support, etc.):
+
+1. Keep the shared runtime (`API + Agent + MCP`) and infrastructure (Redis, MongoDB, PostgreSQL, SignalR).
+2. Define a domain-specific system prompt in `StudentManagement.Agent/Services/Prompts/`.
+3. Add new MCP tool classes in `StudentManagement.MCP/Tools/` and connect them to target APIs.
+4. Expose/extend application endpoints in `StudentManagement.Api`.
+5. Reuse the same chat/orchestration pipeline, retry policy, and document-generation capabilities.
 
 ## Architecture
 
-The solution follows a **Service-Oriented Clean Architecture** with pure DI (no MediatR). Dependencies flow inward only: Domain ← Application ← Infrastructure ← API. The AI agent runs as a separate process and communicates with the API over HTTP; MCP tools are exposed via a third process.
+The platform follows a **Service-Oriented Clean Architecture** with pure DI (no MediatR). Dependencies flow inward only: Domain ← Application ← Infrastructure ← API. The agent runtime is process-separated: API, Agent orchestrator, and MCP tool server. The included Student Management implementation is a reference domain built on top of this reusable platform.
 
 ```
 StudentManagementSystem/
@@ -12,9 +53,9 @@ StudentManagementSystem/
 │   ├── StudentManagement.Domain          # Entities (DDD), enums, repository interfaces
 │   ├── StudentManagement.Application     # Business logic, DTOs, service abstractions
 │   ├── StudentManagement.Infrastructure  # EF Core, MongoDB, Redis, external services
-│   ├── StudentManagement.Api             # ASP.NET Core API  — port 5000
+│   ├── StudentManagement.Api             # ASP.NET Core API  — port 5100
 │   ├── StudentManagement.Agent           # LLM orchestration (Azure OpenAI + MCP) — port 5200
-│   └── StudentManagement.MCP             # Model Context Protocol server (tools) — port 5100
+│   └── StudentManagement.MCP             # Model Context Protocol server (tools) — port 5300
 ├── student-management-ui/                # React + Vite + TailwindCSS
 └── tests/
     ├── StudentManagement.UnitTests       # 26 unit tests  (xUnit + Moq, no Docker)
@@ -23,6 +64,7 @@ StudentManagementSystem/
 
 ### Key design decisions
 
+- **Domain-agnostic agent core** — agent orchestration, retry/cancel behavior, chat streaming, history, and MCP integration are shared; new agents mainly swap prompt + tool set + API surface.
 - **No MediatR** — plain service interfaces keep the call graph explicit and easy to trace.
 - **Agent is a singleton** — `StudentManagementAgent` and its MCP client are registered as singletons; the tool cache is lazily initialised once and shared across requests.
 - **Stateless agent requests** — conversation history is never held in memory. Each request carries the session ID; the infrastructure layer resolves history from a Redis sliding-window cache (last 20 messages, 24 h TTL) with MongoDB as the permanent append-only backing store.
@@ -34,7 +76,7 @@ StudentManagementSystem/
 | Layer | Technology |
 |---|---|
 | Backend API | .NET 10, ASP.NET Core, C# 14 |
-| AI / Agent | `Microsoft.Extensions.AI`, Azure OpenAI (GPT-4o), Model Context Protocol |
+| AI / Agent | `Microsoft.Extensions.AI`, Azure OpenAI (configurable deployment, currently `gpt-5.5`), Model Context Protocol |
 | Document OCR | Azure AI Document Intelligence |
 | Document Generation | OpenXml SDK (Word `.docx`), ClosedXML (Excel `.xlsx`) |
 | Relational DB | PostgreSQL 15 + Entity Framework Core 10 |
@@ -50,7 +92,7 @@ StudentManagementSystem/
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - Docker Desktop (for local infrastructure and integration tests)
-- Azure OpenAI resource (GPT-4o deployment)
+- Azure OpenAI resource (model deployment configured in `StudentManagement.Agent/appsettings*.json`)
 - Azure AI Document Intelligence resource
 
 ## Getting Started
@@ -109,9 +151,9 @@ cd src/StudentManagement.Agent && dotnet run
 
 | Process | URL |
 |---|---|
-| API + Scalar docs | `http://localhost:5000` → `http://localhost:5000/scalar/v1` |
+| API + Scalar docs | `http://localhost:5100` → `http://localhost:5100/scalar/v1` |
 | Agent + Scalar docs | `http://localhost:5200` → `http://localhost:5200/scalar/v1` |
-| MCP tool server | `http://localhost:5100` |
+| MCP tool server | `http://localhost:5300` |
 
 ### 4. Run the frontend
 
