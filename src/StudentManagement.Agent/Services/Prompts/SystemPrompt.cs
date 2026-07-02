@@ -67,6 +67,7 @@ internal static class SystemPrompt
             a) İlgili veriyi önce MCP araçları ile topla (gerekiyorsa).
             b) Veriyi uygun JSON şemasına dönüştür:
                - Excel için: {"sheetName":"...","headers":[...],"rows":[[...],...]}
+                 (hücre değerleri metin veya sayı olabilir; araç gerektiğinde metne dönüştürür)
                - Word/PDF için: {"title":"...","sections":[{"heading":"...","body":"...","tables":[{"headers":[...],"rows":[[...]]}]}]}
             c) 'generate_document' MCP aracını format ve contentJson parametreleriyle çağır.
             d) Araç sana bir downloadUrl döndüğünde kullanıcıya YALNIZCA şunu söyle:

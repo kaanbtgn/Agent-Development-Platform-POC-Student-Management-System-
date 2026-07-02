@@ -17,14 +17,14 @@ internal sealed class PdfGenerator : IPdfGenerator
                 page.Margin(2, Unit.Centimetre);
                 page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
 
-                page.Header().Text(content.Title)
+                page.Header().Text(content.Title ?? "Belge")
                     .SemiBold().FontSize(18).FontColor(Colors.Grey.Darken3);
 
                 page.Content().Column(col =>
                 {
                     col.Spacing(12);
 
-                    foreach (var section in content.Sections)
+                    foreach (var section in content.Sections ?? [])
                     {
                         // Bölüm başlığı
                         col.Item().Text(section.Heading)
@@ -39,19 +39,22 @@ internal sealed class PdfGenerator : IPdfGenerator
                         {
                             foreach (var tableData in section.Tables)
                             {
+                                var headers = tableData.Headers ?? [];
+                                var rows = tableData.Rows ?? [];
+
                                 col.Item().Table(table =>
                                 {
                                     // Sütun genişlikleri eşit paylaştırılır
                                     table.ColumnsDefinition(def =>
                                     {
-                                        foreach (var _ in tableData.Headers)
+                                        foreach (var _ in headers)
                                             def.RelativeColumn();
                                     });
 
                                     // Başlık satırı — tüm hücreler tek bir Header() callback içinde tanımlanmalı
                                     table.Header(h =>
                                     {
-                                        foreach (var header in tableData.Headers)
+                                        foreach (var header in headers)
                                             h.Cell().Background(Colors.Blue.Lighten4)
                                                 .Padding(4)
                                                 .Text(header).Bold();
@@ -59,10 +62,10 @@ internal sealed class PdfGenerator : IPdfGenerator
 
                                     // Veri satırları
                                     bool alternate = false;
-                                    foreach (var row in tableData.Rows)
+                                    foreach (var row in rows)
                                     {
                                         var bg = alternate ? Colors.Grey.Lighten4 : Colors.White;
-                                        foreach (var cell in row)
+                                        foreach (var cell in row ?? [])
                                         {
                                             table.Cell().Background(bg)
                                                 .Border(1).BorderColor(Colors.Grey.Lighten2)
@@ -89,7 +92,7 @@ internal sealed class PdfGenerator : IPdfGenerator
         });
 
         var bytes = document.GeneratePdf();
-        var fileName = $"{Slugify(content.Title)}.pdf";
+        var fileName = $"{Slugify(content.Title ?? "belge")}.pdf";
         return (bytes, fileName, "application/pdf");
     }
 

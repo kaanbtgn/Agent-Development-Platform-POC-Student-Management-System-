@@ -1,6 +1,7 @@
 using System.ClientModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Client;
 using Polly;
 using Polly.Retry;
@@ -26,17 +27,21 @@ public sealed class StudentManagementAgent
 
     private const int MaxMessagesPerSession = 20;
     private const int MaxLlmRetries = 3;
+    private const int DefaultMaxOutputTokens = 8000;
+    private readonly int _maxOutputTokens;
 
     public StudentManagementAgent(
         Lazy<Task<McpClient>> mcpClientFactory,
         ILogger<StudentManagementAgent> logger,
         IChatClient? chat = null,
-        AzureDocumentIntelligenceService? ocr = null)
+        AzureDocumentIntelligenceService? ocr = null,
+        IConfiguration? configuration = null)
     {
         _chat = chat;
         _ocr = ocr;
         _mcpClientFactory = mcpClientFactory;
         _logger = logger;
+        _maxOutputTokens = configuration?.GetValue<int?>("AzureOpenAI:MaxOutputTokens") ?? DefaultMaxOutputTokens;
     }
 
     public async Task<AgentResponse> ProcessAsync(AgentRequest request, CancellationToken ct)
@@ -92,7 +97,7 @@ public sealed class StudentManagementAgent
         var options = new ChatOptions
         {
             Tools = [.. tools],
-            MaxOutputTokens = 1024,
+            MaxOutputTokens = _maxOutputTokens,
         };
 
         var trimmedHistory = TrimHistory(history);
@@ -145,7 +150,7 @@ public sealed class StudentManagementAgent
         var options = new ChatOptions
         {
             Tools = [.. tools],
-            MaxOutputTokens = 1024,
+            MaxOutputTokens = _maxOutputTokens,
         };
 
         _logger.LogInformation("Streaming LLM çağrısı başlatılıyor.");

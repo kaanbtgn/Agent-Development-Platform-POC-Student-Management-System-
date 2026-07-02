@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using StudentManagement.MCP.Models;
 using StudentManagement.MCP.Services;
@@ -12,6 +13,7 @@ public sealed class GenerateDocumentTool
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
+        Converters = { new LenientStringJsonConverter() },
     };
 
     private readonly IWordGenerator _word;
@@ -44,7 +46,7 @@ public sealed class GenerateDocumentTool
 
         [Description(
             "Belge içeriğini temsil eden JSON string (zorunlu). " +
-            "Excel → {\"sheetName\":\"...\",\"headers\":[...],\"rows\":[[...],...]}, " +
+            "Excel → {\"sheetName\":\"...\",\"headers\":[...],\"rows\":[[...],...]} (hücreler metin/sayı olabilir), " +
             "Word/Pdf → {\"title\":\"...\",\"sections\":[{\"heading\":\"...\",\"body\":\"...\",\"tables\":[{\"headers\":[...],\"rows\":[[...]]}]}]}")]
         string? contentJson = null,
 
@@ -121,4 +123,26 @@ public sealed class GenerateDocumentTool
     }
 
     private record StoreResult(string FileId, string DownloadUrl);
+
+    /// <summary>
+    /// LLM bazen Excel hücrelerini sayı/bool gönderiyor.
+    /// string hedefli deserialize'ın bunları reddetmemesi için tüm primitive türleri string'e normalize eder.
+    /// </summary>
+    private sealed class LenientStringJsonConverter : JsonConverter<string>
+    {
+        public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Null)
+                return string.Empty;
+
+            if (reader.TokenType == JsonTokenType.String)
+                return reader.GetString() ?? string.Empty;
+
+            using var value = JsonDocument.ParseValue(ref reader);
+            return value.RootElement.ToString();
+        }
+
+        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+            => writer.WriteStringValue(value);
+    }
 }

@@ -17,9 +17,9 @@ internal sealed class WordGenerator : IWordGenerator
             var body = mainPart.Document.Body!;
 
             // Ana başlık
-            body.AppendChild(CreateParagraph(content.Title, "Heading1", true));
+            body.AppendChild(CreateParagraph(content.Title ?? "Belge", "Heading1", true));
 
-            foreach (var section in content.Sections)
+            foreach (var section in content.Sections ?? [])
             {
                 // Bölüm başlığı
                 body.AppendChild(CreateParagraph(section.Heading, "Heading2", true));
@@ -39,7 +39,7 @@ internal sealed class WordGenerator : IWordGenerator
             mainPart.Document.Save();
         }
 
-        var fileName = $"{Slugify(content.Title)}.docx";
+        var fileName = $"{Slugify(content.Title ?? "belge")}.docx";
         return (ms.ToArray(), fileName, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     }
 
@@ -71,11 +71,11 @@ internal sealed class WordGenerator : IWordGenerator
                 new InsideVerticalBorder { Val = BorderValues.Single, Size = 4 })));
 
         // Başlık satırı
-        table.AppendChild(CreateRow(tableData.Headers, isHeader: true));
+        table.AppendChild(CreateRow(tableData.Headers ?? [], isHeader: true));
 
         // Veri satırları
-        foreach (var row in tableData.Rows)
-            table.AppendChild(CreateRow(row, isHeader: false));
+        foreach (var row in tableData.Rows ?? [])
+            table.AppendChild(CreateRow(row ?? [], isHeader: false));
 
         return table;
     }
