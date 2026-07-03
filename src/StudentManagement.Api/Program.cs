@@ -77,9 +77,16 @@ try
 
     var app = builder.Build();
 
-    // Development ortamında migration uygula ve seed verisini yükle
-    if (app.Environment.IsDevelopment())
-        await DatabaseSeeder.SeedAsync(app.Services);
+    // Startup'ta migration/seed davranışı:
+    // - Development'ta varsayılan olarak her ikisi de açık
+    // - Diğer ortamlarda appsettings veya env ile kontrol edilir
+    var migrateOnStartup = app.Environment.IsDevelopment()
+        || app.Configuration.GetValue<bool>("Database:MigrateOnStartup");
+    var seedOnStartup = app.Environment.IsDevelopment()
+        || app.Configuration.GetValue<bool>("Database:SeedOnStartup");
+
+    if (migrateOnStartup || seedOnStartup)
+        await DatabaseSeeder.SeedAsync(app.Services, seedOnStartup);
 
     // MongoDB AuditLogs index'lerini oluştur (idempotent — varsa atlar)
     await app.EnsureAuditIndexes();

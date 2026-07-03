@@ -9,15 +9,17 @@ namespace StudentManagement.Infrastructure.Persistence.Seeding;
 public static class DatabaseSeeder
 {
     /// <summary>
-    /// Migration'ları uygular ve development ortamında seed verisini yükler.
-    /// Yalnızca <c>IsDevelopment()</c> kontrolü çağıran katmanda yapılmalıdır.
+    /// Migration'ları uygular ve isteğe bağlı seed verisini yükler.
     /// </summary>
-    public static async Task SeedAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+    public static async Task SeedAsync(IServiceProvider serviceProvider, bool seedData = true, CancellationToken ct = default)
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<StudentDbContext>();
 
         await context.Database.MigrateAsync(ct);
+
+        if (!seedData)
+            return;
 
         if (await context.Students.AnyAsync(ct))
             return;

@@ -70,6 +70,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       AllowedOrigin: ${ALLOWED_ORIGIN:-http://localhost}
+      Database__MigrateOnStartup: "true"
+      Database__SeedOnStartup: "true"
       Agent__BaseUrl: "http://agent:8080"
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-studentmanagement};Username=${POSTGRES_USER:-studentmanagement};Password=${POSTGRES_PASSWORD:-studentmanagement}"
       ConnectionStrings__Mongo: "mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-password}@mongo:27017/student_management?authSource=admin"
